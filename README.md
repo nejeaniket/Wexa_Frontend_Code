@@ -1,50 +1,25 @@
 # Developer Skill & Project Explorer — Frontend
 
-A React-based web application for exploring relationships between developers, technical skills, and projects through an interactive graph-oriented interface.
+React + Vite frontend for the Developer Skill & Project Explorer.
 
-## Overview
+## Run
 
-The frontend provides a dashboard and explorer interface where users can:
+```bash
+npm install
+npm run dev
+```
 
-- View developer, skill, and project statistics
-- Browse technical skills
-- Browse projects
-- Browse developers
-- Search skills, projects, and developers
-- View detailed information for individual records
-- Explore developer skill relationships
-- View related developers based on shared skills
-- View recommended skills based on project relationships
+The backend should run on `http://localhost:3001`.
 
-## Tech Stack
+If your backend uses another URL, create `.env` from `.env.example` and set:
 
-- React
-- Vite
-- JavaScript
-- CSS
-- REST API
-- Fetch API
+```env
+VITE_API_BASE_URL=https://wexa-backend-application.onrender.com/api
+```
 
-## Project Structure;
-src/
-├── components/
-│   ├── common/
-│   ├── dashboard/
-│   ├── details/
-│   ├── explorer/
-│   └── layout/
-│
-├── hooks/
-│   └── useResource.js
-│
-├── services/
-│   └── api.js
-│
-├── data/
-│   └── mockData.js
-│
-├── styles/
-│   └── index.css
-│
-├── App.jsx
-└── main.jsx
+## Fixed issues
+
+- Stable API loader references prevent repeated `useResource` requests/rerenders.
+- Detail panel no longer uses a broken ternary expression.
+- Detail panel safely handles missing arrays and both Neo4j and mock-data shapes.
+- Error/loading states are handled consistently.

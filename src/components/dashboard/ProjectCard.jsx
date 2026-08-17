@@ -1,96 +1,42 @@
 import SkillPill from "../common/SkillPill";
 
-export default function ProjectCard({
-  project,
-  select,
-}) {
-  const skills = Array.isArray(
-    project.skills
-  )
-    ? project.skills
-    : [];
-
-  const contributors =
-    Array.isArray(
-      project.contributors
-    )
-      ? project.contributors.length
-      : project.contributors || 0;
-
+export default function ProjectCard({ project, select }) {
   return (
     <article
       className="project-card clickable"
-      onClick={() => {
-        if (select) {
-          select(
-            "project",
-            project.id
-          );
-        }
-      }}
+      onClick={() => select?.("project", project.id)}
     >
       <div className="project-top">
         <div
           className="project-icon"
-          style={{
-            background:
-              project.color ||
-              "#7c3aed",
-          }}
+          style={{ background: project.color || "#7c3aed" }}
         >
-          {project.name
-            ?.charAt(0)
-            .toUpperCase()}
+          {project.name[0]}
         </div>
-
         <span className="status">
           <i />
-          {project.status ||
-            "Unknown"}
+          {project.status}
         </span>
       </div>
 
-      <h3>
-        {project.name}
-      </h3>
-
-      <p>
-        {project.description ||
-          "No description available."}
-      </p>
+      <h3>{project.name}</h3>
+      <p>{project.description}</p>
 
       <div className="skill-row">
-        {skills.map((skill) => {
-          const name =
-            typeof skill ===
-            "string"
-              ? skill
-              : skill.name;
-
-          return (
-            <SkillPill
-              key={name}
-              name={name}
-              color={
-                typeof skill ===
-                "object"
-                  ? skill.color
-                  : undefined
-              }
-            />
-          );
-        })}
+        {project.skills?.map((skill) => (
+          <SkillPill
+            key={typeof skill === "string" ? skill : skill.id}
+            name={typeof skill === "string" ? skill : skill.name}
+            color={typeof skill === "string" ? undefined : skill.color}
+          />
+        ))}
       </div>
 
       <footer>
         <span>
-          ♙ {contributors} contributors
+          ♙ {project.contributors?.length ?? project.contributors ?? 0} contributors
         </span>
-
-        <span>
-          {project.updated ||
-            "Recently"}
-        </span>
+        <span>{project.updated}</span>
       </footer>
     </article>
   );

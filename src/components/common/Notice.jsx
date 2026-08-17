@@ -1,36 +1,17 @@
-export default function Notice({
-  error,
-  retry,
-}) {
-  if (!error) {
+export default function Notice({ error, retry }) {
+  if (error) {
     return (
-      <div className="notice">
-        <span className="spinner" />
-        <span>
-          Loading graph data...
-        </span>
+      <div className="notice error">
+        <span>{error.message || "Something went wrong."}</span>
+        {retry && <button onClick={retry}>Retry</button>}
       </div>
     );
   }
 
   return (
-    <div className="notice error">
-      <div>
-        <strong>
-          Couldn't load graph data.
-        </strong>
-
-        <p>
-          {error.message ||
-            "Something went wrong."}
-        </p>
-      </div>
-
-      {retry && (
-        <button onClick={retry}>
-          Try again
-        </button>
-      )}
+    <div className="notice">
+      <span className="spinner" />
+      Loading graph data…
     </div>
   );
 }

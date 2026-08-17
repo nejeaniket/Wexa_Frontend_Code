@@ -1,239 +1,86 @@
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
-
+import { useEffect, useState } from "react";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
-
 import Dashboard from "./components/dashboard/Dashboard";
 import Explorer from "./components/explorer/Explorer";
-
 import DetailPanel from "./components/details/DetailPanel";
-
 import { useResource } from "./hooks/useResource";
-import { api } from "./services/api";
+import { api, loadSkills, loadProjects, loadDevelopers } from "./services/api";
 
 export default function App() {
-  const [page, setPage] =
-    useState("Dashboard");
+  const [page, setPage] = useState("Dashboard");
+  const [query, setQuery] = useState("");
+  const [detail, setDetail] = useState(null);
+  const [results, setResults] = useState([]);
 
-  const [query, setQuery] =
-    useState("");
+  const skills = useResource(loadSkills);
+  const projects = useResource(loadProjects);
+  const developers = useResource(loadDevelopers);
 
-  const [detail, setDetail] =
-    useState(null);
-
-  const [results, setResults] =
-    useState([]);
-
-  /*
-   * Keep API loader functions stable.
-   * This prevents useResource from
-   * continuously re-fetching.
-   */
-  const loadSkills = useCallback(
-    () => api.skills(),
-    []
-  );
-
-  const loadProjects = useCallback(
-    () => api.projects(),
-    []
-  );
-
-  const loadDevelopers = useCallback(
-    () => api.developers(),
-    []
-  );
-
-  const skills =
-    useResource(loadSkills);
-
-  const projects =
-    useResource(loadProjects);
-
-  const developers =
-    useResource(loadDevelopers);
-
-  /*
-   * Search
-   */
   useEffect(() => {
-    const term =
-      query.trim();
+    const term = query.trim();
 
     if (term.length < 2) {
       setResults([]);
-      return;
+      return undefined;
     }
 
-    const timer =
-      setTimeout(async () => {
-        try {
-          const data =
-            await api.search(term);
+    const timer = setTimeout(() => {
+      api
+        .search(term)
+        .then(setResults)
+        .catch(() => setResults([]));
+    }, 250);
 
-          setResults(
-            Array.isArray(data)
-              ? data
-              : []
-          );
-        } catch (error) {
-          console.error(
-            "Search error:",
-            error
-          );
-
-          setResults([]);
-        }
-      }, 300);
-
-    return () =>
-      clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [query]);
 
-  /*
-   * Open detail
-   */
-  const select = useCallback(
-    async (type, id) => {
-      console.log(
-        "Opening detail:",
-        type,
-        id
-      );
+  const select = async (type, id) => {
+    setDetail({ type, loading: true });
+
+    try {
+      const data = await api[type](id);
+
+      const [related, recommendations] =
+        type === "developer"
+          ? await Promise.all([
+              api.relatedDevelopers(id),
+              api.recommendations(id),
+            ])
+          : [undefined, undefined];
 
       setDetail({
         type,
-        loading: true,
-        data: null,
-        error: null,
+        data,
+        related,
+        recommendations,
+        loading: false,
       });
+    } catch (error) {
+      setDetail({
+        type,
+        loading: false,
+        error,
+        reload: () => select(type, id),
+      });
+    }
+  };
 
-      try {
-        let data;
+  const resource =
+    page === "Skills"
+      ? skills
+      : page === "Projects"
+        ? projects
+        : developers;
 
-        if (type === "skill") {
-          data =
-            await api.skill(id);
-        } else if (
-          type === "project"
-        ) {
-          data =
-            await api.project(id);
-        } else if (
-          type === "developer"
-        ) {
-          data =
-            await api.developer(id);
-        } else {
-          throw new Error(
-            `Unknown type: ${type}`
-          );
-        }
-
-        let related = [];
-        let recommendations = [];
-
-        /*
-         * Only developers need
-         * graph recommendations.
-         */
-        if (
-          type === "developer"
-        ) {
-          [
-            related,
-            recommendations,
-          ] = await Promise.all([
-            api.relatedDevelopers(
-              id
-            ),
-            api.recommendations(
-              id
-            ),
-          ]);
-        }
-
-        setDetail({
-          type,
-          data,
-          related:
-            Array.isArray(related)
-              ? related
-              : [],
-          recommendations:
-            Array.isArray(
-              recommendations
-            )
-              ? recommendations
-              : [],
-          loading: false,
-          error: null,
-          reload: () =>
-            select(type, id),
-        });
-      } catch (error) {
-        console.error(
-          `Failed to load ${type}:`,
-          error
-        );
-
-        setDetail({
-          type,
-          data: null,
-          loading: false,
-          error,
-          reload: () =>
-            select(type, id),
-        });
-      }
-    },
-    []
-  );
-
-  /*
-   * Search result click
-   */
-  const handleSearchSelect =
-    (item) => {
-      setQuery("");
-      setResults([]);
-
-      select(
-        item.type,
-        item.id
-      );
-    };
-
-  /*
-   * Current explorer resource
-   */
-  let resource;
-  let explorerType;
-
-  if (page === "Skills") {
-    resource = skills;
-    explorerType = "skill";
-  } else if (
-    page === "Projects"
-  ) {
-    resource = projects;
-    explorerType = "project";
-  } else {
-    resource = developers;
-    explorerType =
-      "developer";
-  }
+  const handleSearchSelect = (item) => {
+    select(item.type, item.id);
+    setQuery("");
+  };
 
   return (
     <div className="app">
-      <Sidebar
-        page={page}
-        setPage={setPage}
-      />
+      <Sidebar page={page} setPage={setPage} />
 
       <main>
         <Header
@@ -241,26 +88,18 @@ export default function App() {
           query={query}
           setQuery={setQuery}
           results={results}
-          onSelect={
-            handleSearchSelect
-          }
+          onSelect={handleSearchSelect}
         />
 
         <div className="content">
-          {page ===
-          "Dashboard" ? (
+          {page === "Dashboard" ? (
             <Dashboard
-              resources={{
-                skills,
-                projects,
-                developers,
-              }}
+              resources={{ skills, projects, developers }}
               setPage={setPage}
-              select={select}
             />
           ) : (
             <Explorer
-              type={explorerType}
+              type={page.slice(0, -1).toLowerCase()}
               source={resource}
               query={query}
               select={select}
@@ -269,12 +108,7 @@ export default function App() {
         </div>
       </main>
 
-      <DetailPanel
-        state={detail}
-        close={() =>
-          setDetail(null)
-        }
-      />
+      <DetailPanel state={detail} close={() => setDetail(null)} />
     </div>
   );
 }

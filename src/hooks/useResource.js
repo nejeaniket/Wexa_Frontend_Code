@@ -1,44 +1,26 @@
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function useResource(loader) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [state, setState] = useState({
+    loading: true,
+    data: [],
+    error: null,
+  });
 
-  const load = useCallback(async () => {
+  const reload = useCallback(async () => {
+    setState((current) => ({ ...current, loading: true, error: null }));
+
     try {
-      setLoading(true);
-      setError(null);
-
-      const result = await loader();
-
-      setData(
-        Array.isArray(result)
-          ? result
-          : []
-      );
-    } catch (err) {
-      console.error("API error:", err);
-
-      setError(err);
-      setData([]);
-    } finally {
-      setLoading(false);
+      const data = await loader();
+      setState({ loading: false, data, error: null });
+    } catch (error) {
+      setState({ loading: false, data: [], error });
     }
   }, [loader]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    reload();
+  }, [reload]);
 
-  return {
-    data,
-    loading,
-    error,
-    reload: load,
-  };
+  return { ...state, reload };
 }

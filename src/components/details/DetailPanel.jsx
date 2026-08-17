@@ -1,191 +1,95 @@
 import Notice from "../common/Notice";
 
-function getItemName(item) {
-  if (!item) return "";
-
-  if (typeof item === "string") {
-    return item;
-  }
-
-  if (typeof item === "object") {
-    return item.name || item.id || "";
-  }
-
-  return String(item);
-}
-
-function getItems(items) {
-  if (!Array.isArray(items)) {
-    return [];
-  }
-
-  return items
-    .map(getItemName)
-    .filter(Boolean);
-}
-
 export default function DetailPanel({ state, close }) {
-  if (!state) {
-    return null;
-  }
+  if (!state) return null;
 
-  const {
-    type,
-    data,
-    loading,
-    error,
-    related,
-    recommendations,
-  } = state;
+  const { type, data, loading, error, related, recommendations } = state;
 
   const groups = [];
 
-  // -------------------------
-  // Skills
-  // -------------------------
   if (data?.skills) {
-    groups.push({
-      title: "Skills",
-      items: getItems(data.skills),
-    });
+    groups.push([
+      "Skills",
+      data.skills.map((item) =>
+        typeof item === "string" ? item : item.name,
+      ),
+    ]);
   }
 
-  // -------------------------
-  // Projects
-  // -------------------------
   if (data?.projects) {
-    groups.push({
-      title: "Projects",
-      items: getItems(data.projects),
-    });
+    groups.push([
+      "Projects",
+      data.projects.map((item) =>
+        typeof item === "string" ? item : item.name,
+      ),
+    ]);
   }
 
-  // -------------------------
-  // Developers
-  // -------------------------
   if (data?.developers) {
-    groups.push({
-      title: "Developers",
-      items: getItems(data.developers),
-    });
+    groups.push([
+      "Developers",
+      data.developers.map((item) =>
+        typeof item === "string" ? item : item.name,
+      ),
+    ]);
   }
 
-  // -------------------------
-  // Related Developers
-  // -------------------------
-  if (Array.isArray(related)) {
-    groups.push({
-      title: "Shared-skill peers (2-hop)",
-      items: related
-        .map((developer) => {
-          const name = getItemName(developer);
-
-          const sharedSkills = Array.isArray(
-            developer.sharedSkills,
-          )
-            ? developer.sharedSkills.join(", ")
-            : "";
-
-          return sharedSkills
-            ? `${name} · ${sharedSkills}`
-            : name;
-        })
-        .filter(Boolean),
-    });
+  if (related) {
+    groups.push([
+      "Shared-skill peers (2-hop)",
+      related.map((item) =>
+        `${item.name} · ${(item.sharedSkills || []).join(", ")}`,
+      ),
+    ]);
   }
 
-  // -------------------------
-  // Recommended Skills
-  // -------------------------
-  if (Array.isArray(recommendations)) {
-    groups.push({
-      title: "Suggested skills (3-hop)",
-      items: getItems(recommendations),
-    });
+  if (recommendations) {
+    groups.push([
+      "Suggested skills (3-hop)",
+      recommendations.map((item) => item.name),
+    ]);
   }
 
   return (
-    <div
-      className="overlay"
-      onClick={close}
-    >
+    <div className="overlay" onClick={close}>
       <aside
         className="detail-panel"
-        onClick={(event) =>
-          event.stopPropagation()
-        }
+        onClick={(event) => event.stopPropagation()}
       >
-        {/* Close */}
-        <button
-          className="close"
-          onClick={close}
-          aria-label="Close details"
-        >
+        <button className="close" onClick={close} aria-label="Close details">
           ×
         </button>
 
-        {/* Loading */}
-        {loading && (
-          <Notice />
-        )}
+        {loading && <Notice />}
 
-        {/* Error */}
         {!loading && error && (
-          <Notice
-            error={error}
-            retry={state.reload}
-          />
+          <Notice error={error} retry={state.reload} />
         )}
 
-        {/* Content */}
-        {!loading &&
-          !error &&
-          data && (
-            <>
-              <p className="eyebrow">
-                {type} detail · live API
-              </p>
+        {!loading && !error && data && (
+          <>
+            <p className="eyebrow">{type} detail · live API</p>
+            <h2>{data.name}</h2>
+            <p className="detail-copy">
+              {data.description ||
+                data.role ||
+                [data.category, data.level].filter(Boolean).join(" · ")}
+            </p>
 
-              <h2>
-                {data.name || "Unknown"}
-              </h2>
-
-              <p className="detail-copy">
-                {data.description ||
-                  data.role ||
-                  [data.category, data.level]
-                    .filter(Boolean)
-                    .join(" · ")}
-              </p>
-
-              {groups.map(
-                ({ title, items }) => (
-                  <section
-                    className="detail-list"
-                    key={title}
-                  >
-                    <h3>{title}</h3>
-
-                    {items.length > 0 ? (
-                      items.map(
-                        (item, index) => (
-                          <span
-                            key={`${title}-${index}`}
-                          >
-                            ● {item}
-                          </span>
-                        ),
-                      )
-                    ) : (
-                      <p>
-                        None yet
-                      </p>
-                    )}
-                  </section>
-                ),
-              )}
-            </>
-          )}
+            {groups.map(([label, items]) => (
+              <section className="detail-list" key={label}>
+                <h3>{label}</h3>
+                {items?.length ? (
+                  items.map((item, index) => (
+                    <span key={`${label}-${item}-${index}`}>● {item}</span>
+                  ))
+                ) : (
+                  <p>None yet</p>
+                )}
+              </section>
+            ))}
+          </>
+        )}
       </aside>
     </div>
   );
