@@ -1,6 +1,4 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://wexa-backend-application.onrender.com";
+const API_BASE_URL ="https://wexa-backend-application.onrender.com";
 
 export class ApiError extends Error {
   constructor(message, status = 0) {
